@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <cstring>
+#include <sstream>
 
 FeedHandler::FeedHandler(const std::string& host, int port)
     : host_(host), port_(port), sockfd_(-1) {}
@@ -34,6 +35,23 @@ void FeedHandler::start() {
 }
 
 void FeedHandler::processMessage(const std::string& msg) {
-    // For now, just print the message
-    std::cout << "Received: " << msg << std::endl;
+    std::istringstream ss(msg);
+    std::string symbol, price_str, size_str;
+
+    if (std::getline(ss, symbol, ',') &&
+        std::getline(ss, price_str, ',') &&
+        std::getline(ss, size_str)) {
+        try {
+            double price = std::stod(price_str);
+            int size = std::stoi(size_str);
+            MarketData data{symbol, price, size};
+            std::cout << "Parsed: Symbol=" << data.symbol
+                      << ", Price=" << data.price
+                      << ", Size=" << data.size << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "Parse error: " << e.what() << " in message: " << msg << std::endl;
+        }
+    } else {
+        std::cerr << "Malformed message: " << msg << std::endl;
+    }
 }
